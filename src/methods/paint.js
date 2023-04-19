@@ -15,12 +15,18 @@ export default function paint($element, layout) {
   console.log("Layout", layout);
 
   const allProps = createProps(layout);
+  const colorsValue = layout.colorCensusArray.map((val) =>
+    String(val.colorVal)
+  );
+  const colorsColor = layout.colorCensusArray.map((color) => color.color);
+
+  // console.log("Colors", colorsValue, colorsColor);
 
   // Manage data
-  var mat = layout.qHyperCube.qDataPages[0].qMatrix,
+  const mat = layout.qHyperCube.qDataPages[0].qMatrix,
     matSecond = layout.second.qHyperCube.qDataPages[0].qMatrix;
 
-  var nodesRaw = mat.map((item) => {
+  const nodesRaw = mat.map((item) => {
     return {
       id: item[0].qText,
       color: "", //item[0].qAttrExps.qValues[0].qText,
@@ -33,47 +39,78 @@ export default function paint($element, layout) {
     };
   });
 
-  var linksRaw = matSecond
-    .map((item) => {
-      return {
-        source: item[0].qText,
-        target: item[1].qText,
-        sourceColor: item[2].qText,
-        targetColor: item[3].qText,
-        editedSRC: item[4]?.qText,
-        editedTRG: item[5]?.qText,
-        highlightArrow: item[6]?.qText,
-      };
-    })
-    .filter((item) => item.target != "-" && item.source != "-");
+  let nodeDistinct = [];
+  let worstCase = [];
 
-  // console.log("linksRaw", linksRaw);
+  for (const item of matSecond) {
+    const qText = item[0].qText;
+    const qNum = item[2].qNum;
 
-  var filteredIds = [];
-  linksRaw.forEach((link) => {
-    filteredIds.push(link.source, link.target);
-  });
-  filteredIds = [...new Set(filteredIds)];
-  // console.log("filteredIds", filteredIds);
+    const index = nodeDistinct.indexOf(qText);
+    if (index === -1) {
+      nodeDistinct.push(qText);
+      worstCase.push(qNum);
+    } else if (worstCase[index] < qNum) {
+      worstCase[index] = qNum;
+    }
+  }
+  // console.log("nodeDistinct:", nodeDistinct, "worstCase:", worstCase);
 
+  const linksRaw = matSecond.reduce((acc, item) => {
+    const source = item[0].qText,
+      target = item[1].qText,
+      editedSRC = item[4]?.qText,
+      editedTRG = item[5]?.qText,
+      highlightArrow = item[6]?.qText;
+
+    if (target !== "-" && source !== "-") {
+      let sourceColor = "error";
+      const srcValue = worstCase[nodeDistinct.indexOf(source)];
+
+      const index = colorsValue.indexOf(String(srcValue));
+      if (index > -1) {
+        sourceColor = colorsColor[index];
+      }
+
+      let targetColor = "error";
+      const trgValue = item[3].qText;
+
+      if (colorsValue.includes(trgValue)) {
+        targetColor = colorsColor[colorsValue.indexOf(trgValue)];
+      }
+
+      acc.push({
+        source,
+        target,
+        sourceColor,
+        targetColor,
+        editedSRC,
+        editedTRG,
+        highlightArrow,
+      });
+    }
+    return acc;
+  }, []);
+
+  var filteredIds = [
+    ...new Set(linksRaw.map((link) => [link.source, link.target]).flat()),
+  ];
   var nodesWColors = nodesRaw.filter((item) => filteredIds.includes(item.id));
-
-  nodesWColors.forEach((item) => {
-    for (const link of linksRaw) {
-      if (link.source == item.id) {
-        item.color = link.sourceColor;
-        item.highlight = link?.editedSRC;
-        break;
-      } else if (link.target == item.id) {
-        item.color = link.targetColor;
-        item.highlight = link?.editedTRG;
-        item.highlightArrow = link?.highlightArrow;
-        break;
+  nodesWColors.forEach((node) => {
+    var link = linksRaw.find(
+      (link) => link.source === node.id || link.target === node.id
+    );
+    if (link) {
+      if (link.source === node.id) {
+        node.color = link.sourceColor;
+        node.highlight = link.editedSRC;
+      } else if (link.target === node.id) {
+        node.color = link.targetColor;
+        node.highlight = link.editedTRG;
+        node.highlightArrow = link.highlightArrow;
       }
     }
   });
-
-  // console.log("nodesWColors", nodesWColors);
 
   const data = {
     nodes: nodesWColors, //nodesRaw.filter((item) => filteredIds.includes(item.id)),

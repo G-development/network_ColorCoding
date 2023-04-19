@@ -1,4 +1,11 @@
-import { cpAbout, cpString, cpSwitch, cpTextArea } from "./util";
+import { cpAbout, cpString, cpSwitch, cpTextArea, cpArray, cpNumber } from "./util";
+
+var colorCensusArr = {
+	colorItemName: cpString("network.colorItemName", "Item name", "New item", ""),
+  // colorVal: cpNumber("colorVal", "Value", "", "number", "optional"),
+  colorVal: cpString("colorVal", "Value", "", "string", "optional"),
+  color: cpString("color", "Color", "", "optional"),
+}
 
 export default {
   type: "items",
@@ -39,6 +46,13 @@ export default {
         highlightArrow:  cpString("second.qHyperCubeDef.qMeasures.4.qDef.qDef", "Highlight on arrow", "", "optional", "measure"), 
         highlightColor: cpString("second.highlightColor", "Highlight color", "", "optional"), 
         highlightStroke: cpString("second.highlightStroke", "Highlight stroke width", "", ""),
+      }
+    },
+    colorCensus: {
+      type: "items",
+      label: "Coloring",
+      items: {
+        colorCensusArray:  cpArray("colorCensusArray", "Create LABEL", "network.colorItemName", "Add color", colorCensusArr),
       }
     },
 
